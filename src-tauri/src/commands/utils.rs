@@ -18,6 +18,7 @@ pub fn run_powershell(script: &str) -> Result<String, String> {
             "-Command",
             &utf8_script,
         ])
+        .creation_flags(0x08000000) // CREATE_NO_WINDOW
         .output()
         .map_err(|e| format!("Failed to execute PowerShell: {}", e))?;
 
@@ -54,4 +55,38 @@ pub fn spawn_powershell(script: &str) -> std::io::Result<std::process::Child> {
         .stderr(std::process::Stdio::piped())
         .creation_flags(0x08000000) // CREATE_NO_WINDOW
         .spawn()
+}
+
+pub fn is_admin_sync() -> bool {
+    // Check if running as admin using PowerShell
+    let script = "([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)";
+    match run_powershell(script) {
+        Ok(output) => output.trim().to_lowercase() == "true",
+        Err(_) => false,
+    }
+}
+
+pub fn restart_as_admin_sync() -> Result<(), String> {
+    let current_exe = std::env::current_exe().map_err(|e| e.to_string())?;
+
+    // Use PowerShell Start-Process -Verb RunAs to relaunch
+    let script = format!(
+        "Start-Process -FilePath '{}' -Verb RunAs",
+        current_exe.to_string_lossy()
+    );
+
+    // We run this and don't wait for output, as the current process should exit shortly after
+    let _ = run_powershell(&script);
+
+    std::process::exit(0);
+}
+
+#[tauri::command]
+pub async fn is_admin() -> bool {
+    is_admin_sync()
+}
+
+#[tauri::command]
+pub async fn restart_as_admin() -> Result<(), String> {
+    restart_as_admin_sync()
 }

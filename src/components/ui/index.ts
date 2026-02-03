@@ -68,3 +68,12 @@ export {
   SidebarTrigger,
   useSidebar,
 } from "./sidebar";
+export {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "./dialog";

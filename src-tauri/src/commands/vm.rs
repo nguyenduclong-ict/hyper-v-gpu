@@ -529,7 +529,6 @@ pub async fn update_vm_config(window: Window, config: VMUpdateConfig) -> Result<
 
         let reader = BufReader::new(stdout);
         let mut success = false;
-        let mut final_error: Option<String> = None;
 
         for line in reader.lines() {
             match line {

@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import { VMUpdateModal } from "./VMUpdateModal";
 import { invoke } from "@tauri-apps/api/core";
+import { confirm } from "@tauri-apps/plugin-dialog";
 import { Button, Card, CardContent } from "@/components/ui";
+import { useTranslation } from "react-i18next";
 import {
   Play,
   Square,
@@ -27,6 +29,7 @@ interface VMInfo {
 }
 
 export function VMList() {
+  const { t } = useTranslation();
   const [vms, setVms] = useState<VMInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -81,7 +84,14 @@ export function VMList() {
   };
 
   const handleDelete = async (name: string) => {
-    if (!confirm(`Bạn có chắc muốn xóa VM "${name}"?`)) return;
+    const confirmed = await confirm(
+      t('Are you sure you want to delete VM "{{name}}"?', { name }),
+      {
+        title: t("Confirm Delete"),
+        kind: "warning",
+      },
+    );
+    if (!confirmed) return;
 
     setActionLoading(name);
     try {
@@ -132,7 +142,7 @@ export function VMList() {
               className="mt-4"
             >
               <RefreshCw className="h-4 w-4 mr-2" />
-              Thử lại
+              {t("Retry")}
             </Button>
           </CardContent>
         </Card>
@@ -143,7 +153,7 @@ export function VMList() {
   return (
     <div className="p-6 max-w-4xl mx-auto">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold">Danh sách máy ảo</h2>
+        <h2 className="text-2xl font-bold">{t("VM List")}</h2>
         <Button
           variant="outline"
           onClick={() => loadVMs(false)}
@@ -152,7 +162,7 @@ export function VMList() {
           <RefreshCw
             className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`}
           />
-          Làm mới
+          {t("Refresh")}
         </Button>
       </div>
 
@@ -161,7 +171,9 @@ export function VMList() {
           <CardContent className="pt-6 text-center">
             <Monitor className="h-12 w-12 mx-auto text-gray-400 mb-4" />
             <p className="text-gray-600 dark:text-gray-400">
-              Chưa có máy ảo nào. Tạo máy ảo mới ở tab "Tạo VM".
+              {t(
+                "No virtual machines found. Create a new one in the 'Create VM' tab.",
+              )}
             </p>
           </CardContent>
         </Card>
@@ -187,7 +199,7 @@ export function VMList() {
                         </span>
                         {vm.has_gpu && (
                           <span className="text-xs px-2 py-1 rounded-full font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
-                            GPU
+                            {t("GPU")}
                           </span>
                         )}
                       </div>
@@ -216,7 +228,7 @@ export function VMList() {
                         disabled={actionLoading === vm.name}
                       >
                         <Play className="h-4 w-4 mr-1" />
-                        Start
+                        {t("Start")}
                       </Button>
                     ) : (
                       <Button
@@ -226,7 +238,7 @@ export function VMList() {
                         disabled={actionLoading === vm.name}
                       >
                         <Square className="h-4 w-4 mr-1" />
-                        Stop
+                        {t("Stop")}
                       </Button>
                     )}
                     <Button
@@ -238,7 +250,7 @@ export function VMList() {
                         setUpdateModalOpen(true);
                       }}
                       disabled={actionLoading === vm.name}
-                      title="Cấu hình GPU"
+                      title={t("Configure GPU")}
                     >
                       <Settings className="h-4 w-4" />
                     </Button>
@@ -260,7 +272,7 @@ export function VMList() {
                           }
                         }}
                         disabled={actionLoading === vm.name}
-                        title="Kết nối Remote Desktop"
+                        title={t("Connect Remote Desktop")}
                       >
                         <MonitorPlay className="h-4 w-4" />
                       </Button>
@@ -275,8 +287,8 @@ export function VMList() {
                       }
                       title={
                         vm.state.toLowerCase() !== "off"
-                          ? "VM phải tắt trước khi xóa"
-                          : "Xóa VM"
+                          ? t("VM must be off before deleting")
+                          : t("Delete VM")
                       }
                     >
                       <Trash2 className="h-4 w-4" />

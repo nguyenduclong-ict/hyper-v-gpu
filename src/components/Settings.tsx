@@ -1,24 +1,26 @@
 import { useTheme } from "@/contexts/ThemeContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
 import { Sun, Moon, Monitor, Info } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export function Settings() {
+  const { t } = useTranslation();
   const { theme, setTheme, resolvedTheme } = useTheme();
 
   const themeOptions = [
-    { value: "light" as const, label: "Sáng", icon: Sun },
-    { value: "dark" as const, label: "Tối", icon: Moon },
-    { value: "system" as const, label: "Hệ thống", icon: Monitor },
+    { value: "light" as const, label: t("Light"), icon: Sun },
+    { value: "dark" as const, label: t("Dark"), icon: Moon },
+    { value: "system" as const, label: t("System"), icon: Monitor },
   ];
 
   return (
     <div className="p-6 max-w-2xl mx-auto space-y-6">
-      <h2 className="text-2xl font-bold">Cài đặt</h2>
+      <h2 className="text-2xl font-bold">{t("Settings")}</h2>
 
       {/* Theme Settings */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Giao diện</CardTitle>
+          <CardTitle className="text-lg">{t("Theme")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-3 gap-3">
@@ -52,7 +54,8 @@ export function Settings() {
             })}
           </div>
           <p className="mt-3 text-sm text-muted-foreground">
-            Đang dùng: {resolvedTheme === "dark" ? "Chế độ tối" : "Chế độ sáng"}
+            {t("Theme")}:{" "}
+            {resolvedTheme === "dark" ? t("Dark Mode") : t("Light Mode")}
           </p>
         </CardContent>
       </Card>
@@ -62,12 +65,12 @@ export function Settings() {
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
             <Info className="h-5 w-5" />
-            Thông tin ứng dụng
+            {t("Application Info")}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex justify-between">
-            <span className="text-gray-500">Phiên bản</span>
+            <span className="text-gray-500">{t("Version")}</span>
             <span className="font-medium">0.1.0</span>
           </div>
           <div className="flex justify-between">
@@ -75,7 +78,7 @@ export function Settings() {
             <span className="font-medium">Tauri 2.x + React</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-500">Tham khảo</span>
+            <span className="text-gray-500">{t("Reference")}</span>
             <a
               href="https://github.com/jamesstringer90/Easy-GPU-PV"
               target="_blank"
@@ -87,8 +90,9 @@ export function Settings() {
           </div>
           <hr className="my-4 dark:border-gray-700" />
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            Công cụ tạo máy ảo Hyper-V với GPU Passthrough (GPU-PV). Cho phép
-            chia sẻ GPU giữa host và máy ảo.
+            {t(
+              "GPU-PV allows sharing a GPU between the host and Hyper-V virtual machines",
+            )}
           </p>
         </CardContent>
       </Card>
@@ -97,13 +101,13 @@ export function Settings() {
       <Card className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950">
         <CardContent className="pt-6">
           <h4 className="font-medium text-blue-800 dark:text-blue-200 mb-2">
-            Lưu ý quan trọng
+            {t("Important Notes")}
           </h4>
           <ul className="text-sm text-blue-700 dark:text-blue-300 space-y-1 list-disc list-inside">
-            <li>Ứng dụng cần chạy với quyền Administrator</li>
-            <li>Windows 10/11 Pro, Enterprise hoặc Education</li>
-            <li>Hyper-V phải được bật trong Windows Features</li>
-            <li>GPU phải hỗ trợ partitioning (NVIDIA/AMD/Intel)</li>
+            <li>{t("Application must be run as Administrator")}</li>
+            <li>{t("Windows 10/11 Pro, Enterprise or Education")}</li>
+            <li>{t("Hyper-V must be enabled in Windows Features")}</li>
+            <li>{t("GPU must support partitioning (NVIDIA/AMD/Intel)")}</li>
           </ul>
         </CardContent>
       </Card>

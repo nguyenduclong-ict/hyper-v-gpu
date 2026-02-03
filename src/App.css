@@ -74,12 +74,11 @@ body,
 
 :root {
   font-family:
-    Inter,
+    Roboto,
     system-ui,
     -apple-system,
     BlinkMacSystemFont,
     "Segoe UI",
-    Roboto,
     Oxygen,
     Ubuntu,
     Cantarell,
@@ -210,7 +209,7 @@ body,
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-normal;
   }
 }
 /* Override Webkit Autofill background color */

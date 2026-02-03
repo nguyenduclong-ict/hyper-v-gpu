@@ -11,6 +11,7 @@ import {
   Play,
   Square,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface SystemInfo {
   os_version: string;
@@ -28,6 +29,7 @@ interface VMInfo {
 }
 
 export function Dashboard() {
+  const { t } = useTranslation();
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
   const [vms, setVms] = useState<VMInfo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -80,7 +82,7 @@ export function Dashboard() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Trạng thái hệ thống
+              {t("System Status")}
             </CardTitle>
             {isReady ? (
               <CheckCircle className="h-4 w-4 text-green-500" />
@@ -90,10 +92,10 @@ export function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-foreground">
-              {isReady ? "Sẵn sàng" : "Có lỗi"}
+              {isReady ? t("Ready") : t("Has Issues")}
             </div>
             <p className="text-xs text-muted-foreground">
-              {systemInfo?.issues.length || 0} vấn đề cần xử lý
+              {systemInfo?.issues.length || 0} {t("issues found")}
             </p>
           </CardContent>
         </Card>
@@ -102,7 +104,7 @@ export function Dashboard() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Tổng số VM
+              {t("Total VMs")}
             </CardTitle>
             <Monitor className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -111,9 +113,13 @@ export function Dashboard() {
               {vms.length}
             </div>
             <p className="text-xs text-muted-foreground">
-              <span className="text-green-500">{runningVMs} đang chạy</span>
+              <span className="text-green-500">
+                {runningVMs} {t("running")}
+              </span>
               {" • "}
-              <span>{stoppedVMs} đã dừng</span>
+              <span>
+                {stoppedVMs} {t("stopped")}
+              </span>
             </p>
           </CardContent>
         </Card>
@@ -122,14 +128,14 @@ export function Dashboard() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              VM có GPU
+              {t("GPUs with GPU")}
             </CardTitle>
             <Cpu className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-foreground">{gpuVMs}</div>
             <p className="text-xs text-muted-foreground">
-              {supportedGPUs} GPU có thể dùng
+              {supportedGPUs} {t("GPUs available")}
             </p>
           </CardContent>
         </Card>
@@ -138,7 +144,7 @@ export function Dashboard() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              RAM hệ thống
+              {t("System RAM")}
             </CardTitle>
             <HardDrive className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -146,7 +152,9 @@ export function Dashboard() {
             <div className="text-2xl font-bold text-foreground">
               {systemInfo?.available_memory_gb || 0} GB
             </div>
-            <p className="text-xs text-muted-foreground">Tổng dung lượng</p>
+            <p className="text-xs text-muted-foreground">
+              {t("Total Capacity")}
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -155,12 +163,12 @@ export function Dashboard() {
       <div className="grid gap-4 lg:grid-cols-2">
         <Card className="border-0 shadow-sm">
           <CardHeader>
-            <CardTitle>Máy ảo gần đây</CardTitle>
+            <CardTitle>{t("Recent VMs")}</CardTitle>
           </CardHeader>
           <CardContent>
             {vms.length === 0 ? (
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                Chưa có máy ảo nào
+                {t("No virtual machines")}
               </p>
             ) : (
               <div className="space-y-4">
@@ -186,7 +194,7 @@ export function Dashboard() {
                       <div>
                         <p className="font-medium">{vm.name}</p>
                         <p className="text-xs text-gray-500 dark:text-gray-400">
-                          {vm.has_gpu ? "GPU Passthrough" : "Không có GPU"}
+                          {vm.has_gpu ? t("GPU Passthrough") : t("No GPU")}
                         </p>
                       </div>
                     </div>
@@ -209,23 +217,27 @@ export function Dashboard() {
         {/* System Info */}
         <Card className="border-0 shadow-sm">
           <CardHeader>
-            <CardTitle>Thông tin hệ thống</CardTitle>
+            <CardTitle>{t("System Information")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex justify-between">
               <span className="text-gray-500 dark:text-gray-400">
-                Hệ điều hành
+                {t("OS")}
               </span>
               <span className="font-medium text-right text-sm">
                 {systemInfo?.os_edition}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-500 dark:text-gray-400">Version</span>
+              <span className="text-gray-500 dark:text-gray-400">
+                {t("Version")}
+              </span>
               <span className="font-medium">{systemInfo?.os_version}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-500 dark:text-gray-400">Hyper-V</span>
+              <span className="text-gray-500 dark:text-gray-400">
+                {t("Hyper-V")}
+              </span>
               <span
                 className={`font-medium ${
                   systemInfo?.hyper_v_enabled
@@ -233,12 +245,12 @@ export function Dashboard() {
                     : "text-red-600"
                 }`}
               >
-                {systemInfo?.hyper_v_enabled ? "Đã bật" : "Chưa bật"}
+                {systemInfo?.hyper_v_enabled ? t("Enabled") : t("Disabled")}
               </span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-500 dark:text-gray-400">
-                GPU hỗ trợ
+                {t("Supported GPUs")}
               </span>
               <span className="font-medium">{supportedGPUs}</span>
             </div>
@@ -251,7 +263,7 @@ export function Dashboard() {
         <Card className="border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950 border-0 shadow-sm">
           <CardHeader>
             <CardTitle className="text-red-800 dark:text-red-200">
-              Vấn đề cần khắc phục
+              {t("Issues to resolve")}
             </CardTitle>
           </CardHeader>
           <CardContent>

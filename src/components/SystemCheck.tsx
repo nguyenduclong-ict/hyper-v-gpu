@@ -8,6 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui";
 import { RefreshCw, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface GpuInfo {
   name: string;
@@ -25,6 +26,7 @@ interface SystemInfo {
 }
 
 export function SystemCheck() {
+  const { t } = useTranslation();
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -51,7 +53,7 @@ export function SystemCheck() {
       <div className="p-6 flex items-center justify-center min-h-[400px]">
         <RefreshCw className="h-8 w-8 animate-spin text-primary-600" />
         <span className="ml-3 text-gray-600 dark:text-gray-400">
-          Đang kiểm tra hệ thống...
+          {t("Checking system...")}
         </span>
       </div>
     );
@@ -64,14 +66,14 @@ export function SystemCheck() {
           <CardHeader>
             <CardTitle className="text-red-800 dark:text-red-200 flex items-center gap-2">
               <XCircle className="h-5 w-5" />
-              Lỗi kiểm tra hệ thống
+              {t("System Check Error")}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-red-600 dark:text-red-300 mb-4">{error}</p>
             <Button variant="destructive" onClick={runCheck}>
               <RefreshCw className="h-4 w-4 mr-2" />
-              Thử lại
+              {t("Retry")}
             </Button>
           </CardContent>
         </Card>
@@ -83,7 +85,7 @@ export function SystemCheck() {
 
   return (
     <div className="p-6 max-w-3xl mx-auto space-y-6">
-      <h2 className="text-2xl font-bold">Kiểm tra hệ thống</h2>
+      <h2 className="text-2xl font-bold">{t("System Check")}</h2>
 
       {/* Status Banner */}
       <Card
@@ -108,7 +110,7 @@ export function SystemCheck() {
                     : "text-yellow-800 dark:text-yellow-200"
                 }`}
               >
-                {isReady ? "Hệ thống sẵn sàng!" : "Cần khắc phục một số vấn đề"}
+                {isReady ? t("System Ready!") : t("Issues found")}
               </h3>
               <p
                 className={`text-sm ${
@@ -118,8 +120,8 @@ export function SystemCheck() {
                 }`}
               >
                 {isReady
-                  ? "Bạn có thể tạo VM với GPU passthrough"
-                  : "Xem chi tiết bên dưới"}
+                  ? t("You can create VM with GPU passthrough")
+                  : t("See details below")}
               </p>
             </div>
           </div>
@@ -131,7 +133,7 @@ export function SystemCheck() {
         {/* OS Info */}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Hệ điều hành</CardTitle>
+            <CardTitle className="text-base">{t("OS")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-between">
@@ -140,7 +142,7 @@ export function SystemCheck() {
                   {systemInfo?.os_edition}
                 </p>
                 <p className="text-xs text-gray-400 dark:text-gray-500">
-                  Version: {systemInfo?.os_version}
+                  {t("Version")}: {systemInfo?.os_version}
                 </p>
               </div>
               <StatusIcon
@@ -158,14 +160,12 @@ export function SystemCheck() {
         {/* Hyper-V */}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Hyper-V</CardTitle>
+            <CardTitle className="text-base">{t("Hyper-V")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-between">
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                {systemInfo?.hyper_v_enabled
-                  ? "Đã kích hoạt"
-                  : "Chưa kích hoạt"}
+                {systemInfo?.hyper_v_enabled ? t("Enabled") : t("Disabled")}
               </p>
               <StatusIcon checked={systemInfo?.hyper_v_enabled || false} />
             </div>
@@ -175,12 +175,12 @@ export function SystemCheck() {
         {/* Memory */}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">RAM</CardTitle>
+            <CardTitle className="text-base">{t("RAM")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-between">
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                {systemInfo?.available_memory_gb} GB khả dụng
+                {systemInfo?.available_memory_gb} GB {t("Available")}
               </p>
               <StatusIcon
                 checked={(systemInfo?.available_memory_gb || 0) >= 8}
@@ -192,14 +192,14 @@ export function SystemCheck() {
         {/* GPU Count */}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">GPU hỗ trợ</CardTitle>
+            <CardTitle className="text-base">{t("Supported GPUs")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-between">
               <p className="text-sm text-gray-600 dark:text-gray-400">
                 {systemInfo?.gpu_list.filter((g) => g.supports_partitioning)
                   .length || 0}{" "}
-                GPU
+                {t("GPU")}
               </p>
               <StatusIcon
                 checked={
@@ -215,7 +215,7 @@ export function SystemCheck() {
       {/* GPU List */}
       <Card>
         <CardHeader>
-          <CardTitle>Danh sách GPU</CardTitle>
+          <CardTitle>{t("GPU List")}</CardTitle>
         </CardHeader>
         <CardContent>
           {systemInfo?.gpu_list && systemInfo.gpu_list.length > 0 ? (
@@ -228,7 +228,7 @@ export function SystemCheck() {
                   <div>
                     <p className="font-medium">{gpu.name}</p>
                     <p className="text-xs text-gray-500">
-                      Driver: {gpu.driver_version}
+                      {t("Driver")}: {gpu.driver_version}
                     </p>
                   </div>
                   <span
@@ -239,14 +239,14 @@ export function SystemCheck() {
                     }`}
                   >
                     {gpu.supports_partitioning
-                      ? "Hỗ trợ GPU-PV"
-                      : "Không hỗ trợ"}
+                      ? t("Supports GPU-PV")
+                      : t("Not Supported")}
                   </span>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-gray-500">Không tìm thấy GPU</p>
+            <p className="text-sm text-gray-500">{t("No GPU found")}</p>
           )}
         </CardContent>
       </Card>
@@ -256,7 +256,7 @@ export function SystemCheck() {
         <Card className="border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950">
           <CardHeader>
             <CardTitle className="text-red-800 dark:text-red-200">
-              Vấn đề cần khắc phục
+              {t("Issues to resolve")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -278,7 +278,7 @@ export function SystemCheck() {
       <div className="flex justify-center pt-4">
         <Button onClick={runCheck} size="lg">
           <RefreshCw className="h-4 w-4 mr-2" />
-          Kiểm tra lại
+          {t("Check Again")}
         </Button>
       </div>
     </div>

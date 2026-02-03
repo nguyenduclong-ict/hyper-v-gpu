@@ -23,6 +23,7 @@ import { listen } from "@tauri-apps/api/event";
 import { Loader2, AlertTriangle } from "lucide-react";
 import { useLog } from "@/contexts/LogContext";
 import { VMCreationModal } from "./VMCreationModal";
+import { useTranslation } from "react-i18next";
 
 interface VMUpdateModalProps {
   isOpen: boolean;
@@ -53,6 +54,7 @@ export function VMUpdateModal({
   vmName,
   onSuccess,
 }: VMUpdateModalProps) {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [gpuList, setGpuList] = useState<string[]>([]);
   const [switchList, setSwitchList] = useState<string[]>([]);
@@ -130,7 +132,9 @@ export function VMUpdateModal({
     if (vmState === "Running") {
       if (
         !confirm(
-          `Hành động này sẽ TẮT máy ảo "${vmName}" để cập nhật Cấu hình & GPU. Bạn có chắc chắn không?`,
+          t(
+            "VM will be <b>Force Stopped</b> to apply CPU, RAM, and GPU changes.",
+          ),
         )
       ) {
         return;
@@ -199,17 +203,22 @@ export function VMUpdateModal({
           }}
         >
           <DialogHeader>
-            <DialogTitle>Cấu hình VM - {vmName}</DialogTitle>
+            <DialogTitle>
+              {t("Configure VM - {{name}}", { name: vmName })}
+            </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4 py-4 px-1 overflow-y-auto flex-1">
             <Card className="border-yellow-200 bg-yellow-50 dark:border-yellow-900 dark:bg-yellow-950/30">
               <CardContent className="pt-4 flex gap-3 text-yellow-800 dark:text-yellow-200 text-sm">
                 <AlertTriangle className="h-5 w-5 shrink-0" />
-                <p>
-                  Máy ảo sẽ được <b>TẮT</b> (Force Stop) để áp dụng thay đổi
-                  CPU, RAM và GPU.
-                </p>
+                <p
+                  dangerouslySetInnerHTML={{
+                    __html: t(
+                      "VM will be <b>Force Stopped</b> to apply CPU, RAM, and GPU changes.",
+                    ),
+                  }}
+                ></p>
               </CardContent>
             </Card>
 
@@ -242,10 +251,10 @@ export function VMUpdateModal({
 
             {/* Network Switch */}
             <div className="space-y-2">
-              <Label>Network Switch</Label>
+              <Label>{t("Select Network Switch")}</Label>
               <Select value={networkSwitch} onValueChange={setNetworkSwitch}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Chọn Network Switch" />
+                  <SelectValue placeholder={t("Select Network Switch")} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="None">None</SelectItem>
@@ -260,10 +269,10 @@ export function VMUpdateModal({
 
             {/* GPU Selection */}
             <div className="space-y-2">
-              <Label>GPU Passthrough</Label>
+              <Label>{t("Select GPU")}</Label>
               <Select value={selectedGpu} onValueChange={setSelectedGpu}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Chọn GPU" />
+                  <SelectValue placeholder={t("Select GPU")} />
                 </SelectTrigger>
                 <SelectContent>
                   {gpuList.map((gpu) => (
@@ -274,14 +283,16 @@ export function VMUpdateModal({
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                "AUTO" sẽ tự động chọn GPU rời mạnh nhất.
+                {t(
+                  '"AUTO" will automatically select the most powerful discrete GPU.',
+                )}
               </p>
             </div>
 
             {/* Allocation */}
             <div className="space-y-4">
               <div className="flex justify-between">
-                <Label>Tài nguyên GPU (Partition)</Label>
+                <Label>{t("GPU Resource (Partition)")}</Label>
                 <span className="text-sm font-bold text-primary">
                   {allocation}%
                 </span>
@@ -294,19 +305,20 @@ export function VMUpdateModal({
                 step={5}
               />
               <p className="text-xs text-muted-foreground">
-                Tỷ lệ tài nguyên (VRAM, Compute, Encode/Decode) được chia sẻ cho
-                VM.
+                {t(
+                  "Resource percentage (VRAM, Compute, Encode/Decode) shared to the VM.",
+                )}
               </p>
             </div>
           </div>
 
           <DialogFooter>
             <Button variant="outline" onClick={onClose} disabled={loading}>
-              Hủy
+              {t("Cancel")}
             </Button>
             <Button onClick={handleUpdate} disabled={loading}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Cập nhật
+              {t("Update")}
             </Button>
           </DialogFooter>
         </DialogContent>

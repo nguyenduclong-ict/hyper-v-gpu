@@ -16,6 +16,7 @@ import {
   AlertCircle,
   Layers,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface GpuInfo {
   name: string;
@@ -34,6 +35,7 @@ interface SystemInfo {
 }
 
 export function GPUSelector() {
+  const { t } = useTranslation();
   const [gpuList, setGpuList] = useState<GpuInfo[]>([]);
   const [vms, setVms] = useState<VMInfo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -87,7 +89,7 @@ export function GPUSelector() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <h2 className="text-2xl font-bold">Quản lý GPU</h2>
+      <h2 className="text-2xl font-bold">{t("GPU Management")}</h2>
 
       {/* GPU Summary */}
       <div className="grid gap-4 md:grid-cols-3">
@@ -99,7 +101,9 @@ export function GPUSelector() {
               </div>
               <div>
                 <p className="text-2xl font-bold">{gpuList.length}</p>
-                <p className="text-sm text-muted-foreground">Tổng số GPU</p>
+                <p className="text-sm text-muted-foreground">
+                  {t("Total GPUs")}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -114,7 +118,7 @@ export function GPUSelector() {
               <div>
                 <p className="text-2xl font-bold">{supportedGPUs.length}</p>
                 <p className="text-sm text-muted-foreground">
-                  Hỗ trợ Partitioning
+                  {t("Partitioning Support")}
                 </p>
               </div>
             </div>
@@ -130,7 +134,7 @@ export function GPUSelector() {
               <div>
                 <p className="text-2xl font-bold">{gpuVMs.length}</p>
                 <p className="text-sm text-muted-foreground">
-                  VM đang dùng GPU
+                  {t("VMs using GPU")}
                 </p>
               </div>
             </div>
@@ -143,13 +147,13 @@ export function GPUSelector() {
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
             <Cpu className="h-5 w-5" />
-            Danh sách GPU
+            {t("GPU List")}
           </CardTitle>
         </CardHeader>
         <CardContent>
           {gpuList.length === 0 ? (
             <p className="text-muted-foreground text-center py-4">
-              Không tìm thấy GPU nào trên hệ thống
+              {t("No GPUs found on the system")}
             </p>
           ) : (
             <div className="space-y-3">
@@ -177,7 +181,7 @@ export function GPUSelector() {
                     <div>
                       <p className="font-medium">{gpu.name}</p>
                       <p className="text-sm text-muted-foreground">
-                        Driver: {gpu.driver_version}
+                        {t("Driver")}: {gpu.driver_version}
                       </p>
                     </div>
                   </div>
@@ -185,12 +189,12 @@ export function GPUSelector() {
                     {gpu.supports_partitioning ? (
                       <Badge className="bg-green-500/10 text-green-600 hover:bg-green-500/20">
                         <CheckCircle className="h-3 w-3 mr-1" />
-                        Hỗ trợ GPU-PV
+                        {t("Supports GPU-PV")}
                       </Badge>
                     ) : (
                       <Badge variant="secondary">
                         <XCircle className="h-3 w-3 mr-1" />
-                        Không hỗ trợ
+                        {t("Not Supported")}
                       </Badge>
                     )}
                   </div>
@@ -206,13 +210,13 @@ export function GPUSelector() {
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
             <Monitor className="h-5 w-5" />
-            VM đang sử dụng GPU
+            {t("VMs using GPU")}
           </CardTitle>
         </CardHeader>
         <CardContent>
           {gpuVMs.length === 0 ? (
             <p className="text-muted-foreground text-center py-4">
-              Chưa có VM nào sử dụng GPU partitioning
+              {t("No VMs using GPU partitioning")}
             </p>
           ) : (
             <div className="space-y-2">
@@ -245,15 +249,22 @@ export function GPUSelector() {
       <Card className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950">
         <CardContent className="pt-6">
           <h4 className="font-medium text-blue-800 dark:text-blue-200 mb-2">
-            Về GPU Partitioning (GPU-PV)
+            {t("About GPU Partitioning (GPU-PV)")}
           </h4>
           <ul className="text-sm text-blue-700 dark:text-blue-300 space-y-1 list-disc list-inside">
-            <li>GPU-PV cho phép chia sẻ GPU giữa host và các máy ảo Hyper-V</li>
-            <li>Chỉ GPU của NVIDIA, AMD hoặc Intel mới hỗ trợ tính năng này</li>
-            <li>Mỗi VM có thể được cấp một phần VRAM và compute của GPU</li>
             <li>
-              Driver trong VM cần được cài đặt riêng (copy từ host hoặc cài từ
-              ISO)
+              {t(
+                "GPU-PV allows sharing a GPU between the host and Hyper-V virtual machines",
+              )}
+            </li>
+            <li>{t("Only NVIDIA, AMD, or Intel GPUs support this feature")}</li>
+            <li>
+              {t("Each VM can be allocated a portion of VRAM and compute")}
+            </li>
+            <li>
+              {t(
+                "Drivers in the VM need to be installed manually (copied from host or via ISO)",
+              )}
             </li>
           </ul>
         </CardContent>

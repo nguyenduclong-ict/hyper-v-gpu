@@ -10,8 +10,10 @@ import {
   Info,
   AlertTriangle,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export function Logs() {
+  const { t } = useTranslation();
   const { logs, clearLogs } = useLog();
   const [autoScroll, setAutoScroll] = useState(true);
   const logsEndRef = useRef<HTMLDivElement>(null);
@@ -72,9 +74,9 @@ export function Logs() {
       {/* Header */}
       <div className="flex justify-between items-center mb-4">
         <div className="flex items-center gap-4">
-          <h2 className="text-2xl font-bold">Logs</h2>
+          <h2 className="text-2xl font-bold">{t("Logs")}</h2>
           <span className="text-sm text-muted-foreground">
-            {logs.length} entries
+            {logs.length} {t("entries")}
           </span>
           <label className="flex items-center gap-2 text-sm">
             <input
@@ -83,7 +85,7 @@ export function Logs() {
               onChange={(e) => setAutoScroll(e.target.checked)}
               className="rounded"
             />
-            Auto-scroll
+            {t("Auto-scroll")}
           </label>
         </div>
         <div className="flex gap-2">
@@ -94,7 +96,7 @@ export function Logs() {
             disabled={logs.length === 0}
           >
             <Download className="h-4 w-4 mr-2" />
-            Export
+            {t("Export")}
           </Button>
           <Button
             variant="secondary"
@@ -103,7 +105,7 @@ export function Logs() {
             disabled={logs.length === 0}
           >
             <Trash2 className="h-4 w-4 mr-2" />
-            Xóa
+            {t("Clear")}
           </Button>
         </div>
       </div>
@@ -113,9 +115,11 @@ export function Logs() {
         {logs.length === 0 ? (
           <div className="text-gray-500 text-center py-16">
             <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>Chưa có logs nào.</p>
+            <p>{t("No logs yet.")}</p>
             <p className="text-xs mt-2">
-              Logs sẽ xuất hiện khi bạn thực hiện các thao tác như tạo VM, v.v.
+              {t(
+                "Logs will appear when you perform actions like creating VMs, etc.",
+              )}
             </p>
           </div>
         ) : (

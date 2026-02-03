@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2, XCircle, CheckCircle, Terminal } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface VMCreationModalProps {
   open: boolean;
@@ -23,6 +24,7 @@ export function VMCreationModal({
   onClose,
   title,
 }: VMCreationModalProps) {
+  const { t } = useTranslation();
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom
@@ -47,7 +49,7 @@ export function VMCreationModal({
               <CheckCircle className="h-5 w-5 text-green-500" />
             )}
             {status === "error" && <XCircle className="h-5 w-5 text-red-500" />}
-            {title || "Creating VM"}
+            {title || t("Creating VM")}
             <span className="text-primary">{vmName}</span>
           </h2>
         </div>
@@ -63,8 +65,8 @@ export function VMCreationModal({
           >
             {logs.length === 0 && (
               <div className="text-gray-500 italic p-4 text-center mt-10">
-                Initializing process... <br />
-                (Waiting for logs...)
+                {t("Initializing process...")} <br />({t("Waiting for logs...")}
+                )
               </div>
             )}
             {logs.map((log, i) => (
@@ -82,7 +84,7 @@ export function VMCreationModal({
         {status === "error" && error && (
           <div className="px-6 pb-2">
             <div className="bg-red-50 dark:bg-red-950/50 p-3 rounded text-red-600 dark:text-red-300 text-sm border border-red-200 dark:border-red-900">
-              <strong>Error:</strong> {error}
+              <strong>{t("Error")}:</strong> {error}
             </div>
           </div>
         )}
@@ -91,7 +93,7 @@ export function VMCreationModal({
         <div className="p-4 border-t bg-muted/20 flex justify-end gap-2">
           {status === "running" ? (
             <Button variant="destructive" onClick={onCancel}>
-              Cancel
+              {t("Cancel")}
             </Button>
           ) : (
             <Button
@@ -99,7 +101,7 @@ export function VMCreationModal({
               onClick={onClose}
               className="px-8"
             >
-              Close
+              {t("Close")}
             </Button>
           )}
         </div>
