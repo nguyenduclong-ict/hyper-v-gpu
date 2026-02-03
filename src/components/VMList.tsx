@@ -14,7 +14,6 @@ import {
   HardDrive,
   Clock,
   AlertCircle,
-  Loader2,
   Settings,
   MonitorPlay,
 } from "lucide-react";
@@ -39,8 +38,8 @@ export function VMList() {
     null,
   );
 
-  const loadVMs = async (isFirstLoad: boolean = true) => {
-    setLoading(isFirstLoad);
+  const loadVMs = async (showLoading: boolean = true) => {
+    setLoading(showLoading);
     setError(null);
     try {
       const vmList = await invoke<VMInfo[]>("list_vms");
@@ -118,14 +117,6 @@ export function VMList() {
         return "bg-gray-100 text-gray-600";
     }
   };
-
-  if (loading && vms.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
 
   if (error) {
     return (

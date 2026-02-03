@@ -23,7 +23,6 @@ import {
   Network,
   Disc,
   FolderOpen,
-  Plus,
   Loader2,
   AlertCircle,
   Hash,
@@ -57,11 +56,17 @@ interface VmConfig {
   };
 }
 
+interface NetworkSwitch {
+  name: string;
+  switch_type: string;
+}
+
 export function VMForm({ onSuccess }: { onSuccess: () => void }) {
   const { t } = useTranslation();
   const { addLog } = useLog();
   const [loading, setLoading] = useState(false);
-  const [switches, setSwitches] = useState<string[]>([]);
+  const [fetchingSystemInfo, setFetchingSystemInfo] = useState(true);
+  const [switches, setSwitches] = useState<NetworkSwitch[]>([]);
   const [gpus, setGpus] = useState<GpuInfo[]>([]);
   const [error, setError] = useState<string | null>(null);
 
@@ -87,18 +92,20 @@ export function VMForm({ onSuccess }: { onSuccess: () => void }) {
     const loadSystemInfo = async () => {
       try {
         const [switchList, systemInfo] = await Promise.all([
-          invoke<string[]>("list_switches"),
+          invoke<NetworkSwitch[]>("get_network_switches"),
           invoke<{ gpu_list: GpuInfo[] }>("check_system"),
         ]);
         setSwitches(switchList);
         setGpus(systemInfo.gpu_list);
 
         if (switchList.length > 0) {
-          setConfig((prev) => ({ ...prev, switch_name: switchList[0] }));
+          setConfig((prev) => ({ ...prev, switch_name: switchList[0].name }));
         }
       } catch (err) {
         console.error("Failed to load system info:", err);
         addLog("error", "System", `Failed to load info: ${err}`);
+      } finally {
+        setFetchingSystemInfo(false);
       }
     };
     loadSystemInfo();
@@ -180,6 +187,14 @@ export function VMForm({ onSuccess }: { onSuccess: () => void }) {
     }
   };
 
+  if (fetchingSystemInfo) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
@@ -225,8 +240,8 @@ export function VMForm({ onSuccess }: { onSuccess: () => void }) {
                   </SelectTrigger>
                   <SelectContent>
                     {switches.map((sw) => (
-                      <SelectItem key={sw} value={sw}>
-                        {sw}
+                      <SelectItem key={sw.name} value={sw.name}>
+                        {sw.name} ({sw.switch_type})
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -495,10 +510,7 @@ export function VMForm({ onSuccess }: { onSuccess: () => void }) {
               {t("Creating...")}
             </>
           ) : (
-            <>
-              <Plus className="mr-2 h-4 w-4" />
-              {t("Create VM Button")}
-            </>
+            <>{t("Create VM Button")}</>
           )}
         </Button>
       </div>
