@@ -100,6 +100,13 @@ if ($GPUName) {
     Write-Host "UPDATE_LOG: Removing existing GPU partition..."
     Remove-VMGpuPartitionAdapter -VMName $VMName -ErrorAction SilentlyContinue
 
+    # Enforce GPU-PV Compatible Settings (Critical for Manual VMs)
+    Write-Host "UPDATE_LOG: Enforcing GPU-PV compatible hardware settings (MMIO, Cache)..."
+    Set-VM -Name $VMName -LowMemoryMappedIoSpace 3GB -HighMemoryMappedIoSpace 32GB -GuestControlledCacheTypes $true -CheckpointType Disabled
+    Set-VMProcessor -VMName $VMName -ExposeVirtualizationExtensions $true
+    Set-VMMemory -VMName $VMName -DynamicMemoryEnabled $false
+    Set-VMKeyProtector -VMName $VMName -NewLocalKeyProtector -ErrorAction SilentlyContinue # Ensure Keys exist
+    
     # Add New GPU Partition
     Write-Host "UPDATE_LOG: Assigning new GPU: $GPUName ($GPUResourceAllocationPercentage%)..."
     Assign-VMGPUPartitionAdapter -VMName $VMName -GPUName $GPUName -GPUResourceAllocationPercentage $GPUResourceAllocationPercentage

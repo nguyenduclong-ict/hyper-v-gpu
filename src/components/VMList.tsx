@@ -205,7 +205,10 @@ export function VMList() {
                         </span>
                         <span className="flex items-center gap-1">
                           <Clock className="h-3 w-3" />
-                          {vm.uptime}
+                          {vm.uptime.split(".").length > 1 &&
+                          vm.uptime.includes(":")
+                            ? vm.uptime.replace(/(\.\d+)$/, "")
+                            : vm.uptime}
                         </span>
                       </div>
                     </div>

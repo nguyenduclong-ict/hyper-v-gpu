@@ -5,7 +5,7 @@ use std::fs;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
 use std::sync::{Arc, Mutex};
-use tauri::{Emitter, State, Window};
+use tauri::{Emitter, Manager, State, Window};
 
 /// Shared state for tracking VM provisioning process
 pub struct ProvisioningState {
@@ -168,7 +168,8 @@ pub async fn create_vm(
     )?;
 
     // 2. Prepare the provision script (copy deps + patch params)
-    let script_path = prepare_provision_script(&config)?;
+    let app_handle = window.app_handle();
+    let script_path = prepare_provision_script(&app_handle, &config)?;
 
     // 3. Execute script
     let _ = window.emit(
@@ -260,14 +261,22 @@ pub async fn create_vm(
     result
 }
 
-fn prepare_provision_script(config: &VMConfig) -> Result<String, String> {
+fn prepare_provision_script(app: &tauri::AppHandle, config: &VMConfig) -> Result<String, String> {
     // 1. Identify source path for dependencies (Easy-GPU-PV folder)
-    let possible_paths = vec![
-        "src-tauri/src/commands/easy-gpu-pv",
-        "src/commands/easy-gpu-pv",
-        "easy-gpu-pv",
-        "../src-tauri/src/commands/easy-gpu-pv",
+    let mut possible_paths = vec![
+        "src-tauri/src/commands/easy-gpu-pv".into(),
+        "src/commands/easy-gpu-pv".into(),
+        "easy-gpu-pv".into(),
+        "../src-tauri/src/commands/easy-gpu-pv".into(),
     ];
+
+    // Check resource path (Production)
+    if let Ok(resource_path) = app.path().resolve(
+        "src/commands/easy-gpu-pv",
+        tauri::path::BaseDirectory::Resource,
+    ) {
+        possible_paths.insert(0, resource_path);
+    }
 
     let base_path = possible_paths
         .iter()
@@ -475,12 +484,20 @@ pub struct VMUpdateConfig {
 #[tauri::command]
 pub async fn update_vm_config(window: Window, config: VMUpdateConfig) -> Result<String, String> {
     // 1. Locate the script
-    let possible_paths = vec![
-        "src-tauri/src/commands/easy-gpu-pv/Update-VMConfig.ps1",
-        "src/commands/easy-gpu-pv/Update-VMConfig.ps1",
-        "easy-gpu-pv/Update-VMConfig.ps1",
-        "../src-tauri/src/commands/easy-gpu-pv/Update-VMConfig.ps1",
+    let mut possible_paths = vec![
+        "src-tauri/src/commands/easy-gpu-pv/Update-VMConfig.ps1".into(),
+        "src/commands/easy-gpu-pv/Update-VMConfig.ps1".into(),
+        "easy-gpu-pv/Update-VMConfig.ps1".into(),
+        "../src-tauri/src/commands/easy-gpu-pv/Update-VMConfig.ps1".into(),
     ];
+
+    // Check resource path (Production)
+    if let Ok(resource_path) = window.app_handle().path().resolve(
+        "src/commands/easy-gpu-pv/Update-VMConfig.ps1",
+        tauri::path::BaseDirectory::Resource,
+    ) {
+        possible_paths.insert(0, resource_path);
+    }
 
     let script_path = possible_paths
         .iter()

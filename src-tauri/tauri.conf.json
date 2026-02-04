@@ -38,6 +38,7 @@
       "nsis": {
         "installerIcon": "icons/icon.ico"
       }
-    }
+    },
+    "resources": ["src/commands/easy-gpu-pv"]
   }
 }

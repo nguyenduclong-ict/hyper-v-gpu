@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
+import { listen } from "@tauri-apps/api/event";
 import {
   Card,
   CardContent,
@@ -31,6 +32,7 @@ import {
 } from "lucide-react";
 import { useLog } from "@/contexts/LogContext";
 import { useTranslation } from "react-i18next";
+import { VMCreationModal } from "./VMCreationModal";
 
 interface GpuInfo {
   id: string;
@@ -70,12 +72,20 @@ export function VMForm({ onSuccess }: { onSuccess: () => void }) {
   const [gpus, setGpus] = useState<GpuInfo[]>([]);
   const [error, setError] = useState<string | null>(null);
 
+  // Modal State
+  const [showLogModal, setShowLogModal] = useState(false);
+  const [creationLogs, setCreationLogs] = useState<string[]>([]);
+  const [creationStatus, setCreationStatus] = useState<
+    "idle" | "running" | "success" | "error"
+  >("idle");
+  const [creationError, setCreationError] = useState<string>();
+
   // Form State
   const [config, setConfig] = useState<VmConfig>({
     name: "GPU-VM-1",
     switch_name: "",
     iso_path: "",
-    storage_path: "",
+    storage_path: "C:\\ProgramData\\Microsoft\\Windows\\Virtual Hard Disks",
     disk_size_gb: 64,
     ram_size_gb: 8,
     cpu_count: 4,
@@ -159,30 +169,64 @@ export function VMForm({ onSuccess }: { onSuccess: () => void }) {
 
     setLoading(true);
     setError(null);
+
+    // Modal Setup
+    setCreationLogs([]);
+    setCreationStatus("running");
+    setCreationError(undefined);
+    setShowLogModal(true);
+
     addLog("info", "VM", `${t("Đang tạo VM:")} ${config.name}...`);
+    setCreationLogs([`${t("Initializing process...")}`]);
+
+    let unlisten: (() => void) | undefined;
 
     try {
-      const vmConfig = { ...config };
-      if (enableGpu) {
-        vmConfig.gpu_config = {
-          gpu_name: selectedGpu,
-          resource_allocation_percentage: gpuAllocation,
-        };
-      }
+      // Listen for logs
+      unlisten = await listen<string>("vm-log", (event) => {
+        setCreationLogs((prev) => [...prev, event.payload]);
+      });
 
-      await invoke("create_vm", { config: vmConfig });
+      const payload = {
+        name: config.name,
+        disk_size_gb: config.disk_size_gb,
+        memory_gb: config.ram_size_gb,
+        cpu_cores: config.cpu_count,
+        iso_path: config.iso_path,
+        tpm_enabled: true,
+        secure_boot: false, // Often requires false for GPU-PV with unsigned drivers
+        network_switch: config.switch_name,
+        gpu_name: enableGpu ? selectedGpu : "None",
+        vhd_path: config.storage_path,
+        gpu_allocation_percent: enableGpu ? gpuAllocation : 50,
+        username: config.username,
+        password: config.password || "",
+        auto_logon: config.auto_logon,
+      };
 
-      addLog(
-        "success",
-        "VM",
-        `VM "${config.name}" ${t('VM "{{name}}" đã tạo thành công với GPU!', { name: config.name })}`,
-      );
+      await invoke("create_vm", { config: payload });
+
+      setCreationStatus("success");
+      const successMsg = `VM "${config.name}" ${t(
+        'VM "{{name}}" đã tạo thành công với GPU!',
+        { name: config.name },
+      )}`;
+
+      setCreationLogs((prev) => [
+        ...prev,
+        `\n----------------------------------------\n${successMsg}`,
+      ]);
+      addLog("success", "VM", successMsg);
       onSuccess();
     } catch (err: any) {
       const errorMsg = err.toString();
       setError(errorMsg);
+      setCreationStatus("error");
+      setCreationError(errorMsg);
+      setCreationLogs((prev) => [...prev, `\n[ERROR] ${errorMsg}`]);
       addLog("error", "VM", `${t("Lỗi tạo VM:")} ${errorMsg}`);
     } finally {
+      if (unlisten) unlisten();
       setLoading(false);
     }
   };
@@ -514,6 +558,26 @@ export function VMForm({ onSuccess }: { onSuccess: () => void }) {
           )}
         </Button>
       </div>
+      <VMCreationModal
+        open={showLogModal}
+        vmName={config.name}
+        logs={creationLogs}
+        status={creationStatus}
+        error={creationError}
+        onCancel={() => {
+          // Send cancel command to backend
+          invoke("cancel_create_vm", { name: config.name });
+          setShowLogModal(false);
+        }}
+        onClose={() => {
+          setShowLogModal(false);
+          // Only redirect if successful
+          if (creationStatus === "success") {
+            onSuccess();
+          }
+        }}
+        title={t("Creating VM")}
+      />
     </div>
   );
 }
