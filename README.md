@@ -6,6 +6,8 @@ This project provides a user-friendly interface for managing Hyper-V Virtual Mac
 
 ![Dashboard](docs/dashboard.png)
 
+![GPU on VM](docs/gpu-on-vm.png)
+
 ## Features
 
 - **Dashboard**: Overview of your virtual environment.
