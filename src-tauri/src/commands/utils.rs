@@ -90,3 +90,19 @@ pub async fn is_admin() -> bool {
 pub async fn restart_as_admin() -> Result<(), String> {
     restart_as_admin_sync()
 }
+
+#[tauri::command]
+pub async fn get_host_drives() -> Result<Vec<String>, String> {
+    // Get list of local fixed disks (DriveType = 3)
+    let script = "Get-CimInstance -ClassName Win32_LogicalDisk | Where-Object { $_.DriveType -eq 3 } | Select-Object -ExpandProperty DeviceID";
+    let output = run_powershell(script)?;
+
+    // Parse output lines into vector
+    let drives = output
+        .lines()
+        .map(|line| line.trim().to_string())
+        .filter(|line| !line.is_empty())
+        .collect();
+
+    Ok(drives)
+}

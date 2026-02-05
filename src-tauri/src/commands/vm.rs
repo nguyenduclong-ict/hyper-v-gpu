@@ -1,3 +1,4 @@
+use super::config::{VMConnectionSettings, VMSettingsStore};
 use super::utils::{run_powershell, spawn_powershell};
 use serde::{Deserialize, Serialize};
 use std::env;
@@ -58,6 +59,7 @@ pub struct VMInfo {
     has_gpu: bool,
     cpu_cores: u32,
     network_switch: String,
+    ip_address: Option<String>,
 }
 
 #[derive(serde::Serialize)]
@@ -193,17 +195,18 @@ pub async fn create_vm(
     let pid_clone = state.current_pid.clone();
 
     // Stream output
+    let window_clone = window.clone();
     let result = tokio::task::spawn_blocking(move || {
         let stdout = child.stdout.take().ok_or("Failed to open stdout")?;
         let stderr = child.stderr.take().ok_or("Failed to open stderr")?;
 
         // Spawn a thread to read stderr to prevent deadlocks and capture errors
-        let window_clone = window.clone();
+        let window_stderr = window_clone.clone();
         std::thread::spawn(move || {
             let reader = BufReader::new(stderr);
             for line in reader.lines() {
                 if let Ok(l) = line {
-                    let _ = window_clone.emit("vm-log", format!("[ERROR] {}", l));
+                    let _ = window_stderr.emit("vm-log", format!("[ERROR] {}", l));
                 }
             }
         });
@@ -215,7 +218,7 @@ pub async fn create_vm(
         for line in reader.lines() {
             match line {
                 Ok(l) => {
-                    let _ = window.emit("vm-log", &l);
+                    let _ = window_clone.emit("vm-log", &l);
                     if l.contains("PROVISION_SUCCESS") {
                         success = true;
                     }
@@ -224,7 +227,7 @@ pub async fn create_vm(
                     }
                 }
                 Err(e) => {
-                    let _ = window.emit("vm-log", format!("Error reading log: {}", e));
+                    let _ = window_clone.emit("vm-log", format!("Error reading log: {}", e));
                 }
             }
         }
@@ -256,6 +259,19 @@ pub async fn create_vm(
     {
         let mut lock = pid_clone.lock().unwrap();
         *lock = None;
+    }
+
+    // Verify success
+    if result.is_ok() {
+        let store = crate::commands::config::VMSettingsStore::new(&app_handle);
+        let mut current_settings = store.get(&config.name);
+
+        // Update hardware fields (Only persist GPU settings as requested)
+        current_settings.gpu_name = Some(config.gpu_name.clone());
+        current_settings.gpu_allocation_percent = Some(config.gpu_allocation_percent);
+
+        // Save
+        let _ = store.set(config.name.clone(), current_settings);
     }
 
     result
@@ -424,7 +440,12 @@ pub async fn list_vms() -> Result<Vec<VMInfo>, String> {
             $switch = (Get-VMNetworkAdapter -VM $_).SwitchName
             if (-not $switch) { $switch = "None" }
             $mem = Get-VMMemory -VMName $_.Name
-            "$($_.Name)|$($_.State)|$($_.CpuUsage)|$($mem.Startup)|$($_.Uptime)|$hasGpu|$($_.ProcessorCount)|$switch"
+            
+            # Get IP Address (IPv4, first one found)
+            $ip = ($_.NetworkAdapters | Select-Object -ExpandProperty IPAddresses | Where-Object { $_ -match '^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$' } | Select-Object -First 1)
+            if (-not $ip) { $ip = "" }
+            
+            "$($_.Name)|$($_.State)|$($_.CpuUsage)|$($mem.Startup)|$($_.Uptime)|$hasGpu|$($_.ProcessorCount)|$switch|$ip"
         }
         "#,
     )?;
@@ -434,6 +455,17 @@ pub async fn list_vms() -> Result<Vec<VMInfo>, String> {
         .filter_map(|line| {
             let parts: Vec<&str> = line.split('|').collect();
             if parts.len() >= 8 {
+                let ip_val = if parts.len() >= 9 {
+                    let s = parts[8].trim();
+                    if s.is_empty() {
+                        None
+                    } else {
+                        Some(s.to_string())
+                    }
+                } else {
+                    None
+                };
+
                 Some(VMInfo {
                     name: parts[0].trim().to_string(),
                     state: parts[1].trim().to_string(),
@@ -443,6 +475,7 @@ pub async fn list_vms() -> Result<Vec<VMInfo>, String> {
                     has_gpu: parts[5].trim() == "true",
                     cpu_cores: parts[6].parse::<u32>().unwrap_or(0),
                     network_switch: parts[7].trim().to_string(),
+                    ip_address: ip_val,
                 })
             } else {
                 None
@@ -529,17 +562,18 @@ pub async fn update_vm_config(window: Window, config: VMUpdateConfig) -> Result<
     let mut child =
         spawn_powershell(&command).map_err(|e| format!("Failed to spawn process: {}", e))?;
 
+    let window_task = window.clone();
     let result = tokio::task::spawn_blocking(move || {
         let stdout = child.stdout.take().ok_or("Failed to open stdout")?;
         let stderr = child.stderr.take().ok_or("Failed to open stderr")?;
 
         // Spawn a thread to read stderr
-        let window_clone = window.clone();
+        let window_stderr = window_task.clone();
         std::thread::spawn(move || {
             let reader = BufReader::new(stderr);
             for line in reader.lines() {
                 if let Ok(l) = line {
-                    let _ = window_clone.emit("vm-log", format!("[ERROR] {}", l));
+                    let _ = window_stderr.emit("vm-log", format!("[ERROR] {}", l));
                 }
             }
         });
@@ -550,13 +584,13 @@ pub async fn update_vm_config(window: Window, config: VMUpdateConfig) -> Result<
         for line in reader.lines() {
             match line {
                 Ok(l) => {
-                    let _ = window.emit("vm-log", &l);
+                    let _ = window_task.emit("vm-log", &l);
                     if l.contains("UPDATE_SUCCESS") {
                         success = true;
                     }
                 }
                 Err(e) => {
-                    let _ = window.emit("vm-log", format!("Error reading log: {}", e));
+                    let _ = window_task.emit("vm-log", format!("Error reading log: {}", e));
                 }
             }
         }
@@ -577,6 +611,22 @@ pub async fn update_vm_config(window: Window, config: VMUpdateConfig) -> Result<
     .await
     .map_err(|e| format!("Task failed: {}", e))??;
 
+    // Save updated config to store
+    let store = crate::commands::config::VMSettingsStore::new(&window.app_handle());
+    let mut current_settings = store.get(&config.name);
+
+    current_settings.gpu_name = Some(config.gpu_name.clone());
+    current_settings.gpu_allocation_percent = Some(config.gpu_allocation_percent);
+    current_settings.cpu_count = Some(config.cpu_count);
+    current_settings.memory_gb = Some(config.memory_mb as u32 / 1024); // Convert MB to GB approximately or store as MB? Storing as GB based on struct.
+                                                                       // Wait, struct says memory_gb: u32. VMUpdateConfig has memory_mb: u64.
+                                                                       // Let's store what we have. If memory_mb is not exact GB, this might be lossy.
+                                                                       // But creation uses GB. Let's assume user inputs MB that aligns with GB usually.
+    current_settings.memory_gb = Some((config.memory_mb / 1024) as u32);
+    current_settings.network_switch = Some(config.network_switch.clone());
+
+    let _ = store.set(config.name.clone(), current_settings);
+
     Ok(result)
 }
 
@@ -596,6 +646,136 @@ pub async fn connect_vm_rdp(name: String) -> Result<(), String> {
                 e
             )
         })?;
+
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn get_vm_ip(name: String) -> Result<String, String> {
+    let script = format!(
+        r#"
+        $vm = Get-VM -Name '{}'
+        $ip = ($vm | Get-VMNetworkAdapter | Sort-Object -Property MacAddress | Select-Object -ExpandProperty IPAddresses | Where-Object {{ $_ -match '^(?:[0-9]{{1,3}}\.){{3}}[0-9]{{1,3}}$' }} | Select-Object -First 1)
+        if ($ip) {{ $ip }} else {{ "" }}
+        "#,
+        name
+    );
+    let output = run_powershell(&script)?;
+    let ip = output.trim().to_string();
+    if ip.is_empty() {
+        Err(
+            "Could not retrieve VM IP Address. Ensure VM is running and connected to a network."
+                .to_string(),
+        )
+    } else {
+        Ok(ip)
+    }
+}
+
+#[tauri::command]
+pub async fn load_vm_settings(
+    window: Window,
+    name: String,
+) -> Result<VMConnectionSettings, String> {
+    let store = VMSettingsStore::new(&window.app_handle());
+    Ok(store.get(&name))
+}
+
+#[tauri::command]
+pub async fn save_vm_settings(
+    window: Window,
+    name: String,
+    settings: VMConnectionSettings,
+) -> Result<(), String> {
+    let store = VMSettingsStore::new(&window.app_handle());
+    store.set(name, settings)
+}
+
+#[tauri::command]
+pub async fn connect_vm_rdp_native(
+    _window: Window,
+    name: String,
+    settings: VMConnectionSettings,
+) -> Result<(), String> {
+    // 1. Get IP
+    let ip = get_vm_ip(name.clone()).await?;
+
+    // 2. Prepare Credentials
+    let mut final_user = settings.username.clone().unwrap_or_default();
+    let final_pass = settings.password.clone().unwrap_or_default();
+
+    // Fix: If username has no domain (no '\'), prepend the IP to force interpretation as local account on the specific target.
+    // Using simple '.\' often defaults to the CLIENT machine's domain, which causes login failure.
+    // Using 'IP\Username' is the robust way to say "User on THIS specific machine".
+    if !final_user.is_empty() && !final_user.contains('\\') {
+        final_user = format!("{}\\{}", ip, final_user);
+    }
+
+    // Add credentials via cmdkey if provided
+    if !final_user.is_empty() && !final_pass.is_empty() {
+        // 1. Clear any existing credentials for this target first to avoid conflicts/stale data
+        let _ = run_powershell(&format!("cmdkey /delete:TERMSRV/{}", ip));
+
+        // 2. Add new credentials
+        let _ = run_powershell(&format!(
+            "cmdkey /generic:TERMSRV/{} /user:{} /pass:{}",
+            ip, final_user, final_pass
+        ));
+    }
+
+    // 3. Generate .rdp file
+    let temp_dir = env::temp_dir().join("HyperV_GPU_RDP");
+    if !temp_dir.exists() {
+        let _ = fs::create_dir_all(&temp_dir);
+    }
+    let rdp_path = temp_dir.join(format!("{}.rdp", name));
+
+    // Calculate window position (winposstr)
+    // Format: winposstr:s:0,show_cmd,left,top,right,bottom
+    // We'll offset it slightly (100, 100) to avoid covering the taskbar or flying off-screen.
+    let left = 100;
+    let top = 100;
+    let width = settings.resolution_w;
+    let height = settings.resolution_h;
+    // Add offset for window chrome (borders + title bar)
+    // This ensures the inner content area matches the requested resolution
+    let right = left + width + 100; // ~8px borders left/right
+    let bottom = top + height + 100; // ~32px title bar + borders
+
+    // RDP File Content
+    // Use cmdkey for credential management, don't embed password in file
+    // IMPORTANT: Windows RDP files MUST use \r\n (CRLF) line endings
+    let mut rdp_content = format!(
+        "full address:s:{}\r\nusername:s:{}\r\nscreen mode id:i:{}\r\nuse multimon:i:0\r\ndesktopwidth:i:{}\r\ndesktopheight:i:{}\r\nwinposstr:s:0,1,{},{},{},{}\r\nprompt for credentials:i:0\r\n",
+        ip,
+        final_user,
+        if settings.fullscreen { 2 } else { 1 },
+        width,
+        height,
+        left, top, right, bottom
+    );
+
+    // Remove custom scaling and smart sizing as requested.
+    // We strictly follow the resolution set by desktopwidth/height.
+
+    // Folder Sharing (redirectdrives)
+    if !settings.shared_drives.is_empty() {
+        // Join drives with semicolons (e.g., "C:;D:")
+        // RDP supports multiple drives separated by semicolons.
+        let drives_str = settings.shared_drives.join(";");
+        rdp_content.push_str(&format!("drivestoredirect:s:{}\r\n", drives_str));
+    }
+
+    fs::write(&rdp_path, rdp_content).map_err(|e| e.to_string())?;
+
+    // 4. Launch mstsc (with Zoom Automation)
+    let final_scale = if settings.scale > 0 {
+        settings.scale as u32
+    } else {
+        100
+    };
+    crate::commands::rdp::RdpAutomator::launch_with_zoom(&rdp_path, final_scale)
+        .map_err(|e| e.to_string())?;
 
     Ok(())
 }

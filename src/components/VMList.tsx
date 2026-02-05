@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { VMUpdateModal } from "./VMUpdateModal";
+import { VMConnectModal } from "./VMConnectModal";
 import { invoke } from "@tauri-apps/api/core";
 import { confirm } from "@tauri-apps/plugin-dialog";
 import { Button, Card, CardContent } from "@/components/ui";
@@ -16,6 +17,7 @@ import {
   AlertCircle,
   Settings,
   MonitorPlay,
+  Globe,
 } from "lucide-react";
 
 interface VMInfo {
@@ -25,6 +27,7 @@ interface VMInfo {
   memory_assigned_mb: number;
   uptime: string;
   has_gpu: boolean;
+  ip_address?: string;
 }
 
 export function VMList() {
@@ -37,6 +40,10 @@ export function VMList() {
   const [selectedVmForUpdate, setSelectedVmForUpdate] = useState<string | null>(
     null,
   );
+  const [connectModalOpen, setConnectModalOpen] = useState(false);
+  const [selectedVmForConnect, setSelectedVmForConnect] = useState<
+    string | null
+  >(null);
 
   const loadVMs = async (showLoading: boolean = true) => {
     setLoading(showLoading);
@@ -210,6 +217,15 @@ export function VMList() {
                             ? vm.uptime.replace(/(\.\d+)$/, "")
                             : vm.uptime}
                         </span>
+                        {vm.ip_address && (
+                          <span
+                            className="flex items-center gap-1"
+                            title={t("IP Address")}
+                          >
+                            <Globe className="h-3 w-3" />
+                            {vm.ip_address}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -255,15 +271,9 @@ export function VMList() {
                         size="sm"
                         variant="outline"
                         className="text-blue-600 border-blue-200 hover:bg-blue-50 dark:text-blue-400 dark:border-blue-900 dark:hover:bg-blue-950"
-                        onClick={async () => {
-                          setActionLoading(vm.name);
-                          try {
-                            await invoke("connect_vm_rdp", { name: vm.name });
-                          } catch (e) {
-                            alert(`RDP Error: ${e}`);
-                          } finally {
-                            setActionLoading(null);
-                          }
+                        onClick={() => {
+                          setSelectedVmForConnect(vm.name);
+                          setConnectModalOpen(true);
                         }}
                         disabled={actionLoading === vm.name}
                         title={t("Connect Remote Desktop")}
@@ -302,6 +312,14 @@ export function VMList() {
         }}
         vmName={selectedVmForUpdate || ""}
         onSuccess={() => loadVMs(false)}
+      />
+      <VMConnectModal
+        isOpen={connectModalOpen}
+        onClose={() => {
+          setConnectModalOpen(false);
+          setSelectedVmForConnect(null);
+        }}
+        vmName={selectedVmForConnect || ""}
       />
     </div>
   );

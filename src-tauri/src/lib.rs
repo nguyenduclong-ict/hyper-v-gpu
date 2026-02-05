@@ -1,9 +1,10 @@
 mod commands;
 
 use commands::{
-    cancel_create_vm, check_system, connect_vm_rdp, create_vm, delete_vm, get_default_vhd_path,
-    get_network_switches, is_admin, list_vms, restart_as_admin, start_vm, stop_vm,
-    test_gpu_partitioning, update_vm, update_vm_config, validate_vm_config, ProvisioningState,
+    cancel_create_vm, check_system, connect_vm_rdp, connect_vm_rdp_native, create_vm, delete_vm,
+    get_default_vhd_path, get_host_drives, get_network_switches, get_vm_ip, is_admin, list_vms,
+    load_vm_settings, restart_as_admin, save_vm_settings, start_vm, stop_vm, test_gpu_partitioning,
+    update_vm, update_vm_config, validate_vm_config, ProvisioningState,
 };
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -36,8 +37,13 @@ pub fn run() {
             test_gpu_partitioning,
             update_vm_config,
             connect_vm_rdp,
+            connect_vm_rdp_native,
+            get_vm_ip,
+            load_vm_settings,
+            save_vm_settings,
             is_admin,
-            restart_as_admin
+            restart_as_admin,
+            get_host_drives
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
